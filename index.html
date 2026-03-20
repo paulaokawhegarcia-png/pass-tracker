@@ -1055,7 +1055,7 @@ function renderTimer() {
 
   // Save partial button - show if paused during work phase with at least 10s elapsed
   document.getElementById("btn-save-partial").style.display=
-    timerElapsed>=10&&!timerRunning&&timerPhase==="work"?"flex":"none";
+    timerElapsed>=10&&!timerRunning&&timerPhase==="work"?"inline-flex":"none";
 
   // Footer
   const today=getToday();
