@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+
+<!-- Google Sign-In -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+:root {
+  --bg: #0b0f1a;
+  --surface: #111827;
+  --surface2: #1e293b;
+  --border: #ffffff0f;
+  --text: #e8eaf0;
+  --muted: #475569;
+  --faint: #1e293b;
+  --radius: 16px;
+  --font-mono: 'Space Mono', monospace;
+  --font: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { font-family: var(--font); cursor: pointer; border: none; transition: all .18s; }
+button:active { transform: scale(.95) !important; }
+input { font-family: var(--font); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #ffffff18; border-radius: 2px; }
+
+/* Animations */
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+@keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+.anim-fadeup { animation: fadeUp .4s ease both; }
+.anim-fadein { animation: fadeIn .3s ease both; }
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+
+/* Nav */
+#nav {
+  position: fixed; top:0; left:0; right:0; z-index:200;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 13px 22px;
+  background: #0b0f1af2;
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: var(--font-mono); font-size:11px; color:#4FC3F7; letter-spacing:3px; }
+.nav-tabs { display:flex; gap:4px; }
+.nav-tab {
+  padding: 7px 14px; border-radius:10px; font-size:13px;
+  background:transparent; color: var(--muted);
+}
+.nav-tab.active { background:#1e3a5f; color:#4FC3F7; }
+.nav-back { background:none; color:var(--muted); font-size:18px; padding:4px 8px; border-radius:8px; }
+
+/* Page wrapper */
+.page { max-width:680px; margin:0 auto; padding: 72px 18px 48px; }
+.page-wide { max-width:960px; margin:0 auto; padding: 72px 18px 48px; }
+
+/* Notif */
+#notif {
+  position:fixed; top:18px; left:50%; transform:translateX(-50%);
+  background:#1e293b; border:1px solid #ffffff18; border-radius:12px;
+  padding:11px 22px; z-index:9999; font-size:13px;
+  box-shadow:0 8px 28px #000a; white-space:nowrap;
+  animation: fadeUp .3s ease;
+  display:none;
+}
+
+/* ── SCREENS ── */
+#screen-login, #screen-setup, #screen-home,
+#screen-timer, #screen-stats, #screen-calendar { display:none; }
+
+/* LOGIN */
+#screen-login {
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:32px;
+  padding:40px 20px;
+  background: radial-gradient(ellipse at 50% 30%, #1e1b4b55, transparent 70%), var(--bg);
+}
+.login-title { font-family:var(--font-mono); font-size:13px; color:#4FC3F7; letter-spacing:4px; margin-bottom:8px; text-align:center; }
+.login-sub { font-size:28px; font-weight:700; text-align:center; line-height:1.2; }
+.login-sub span { color:#818cf8; }
+#google-signin-btn {
+  background:#fff; color:#1a1a2e; border-radius:100px;
+  padding:14px 32px; font-size:15px; font-weight:600;
+  display:flex; align-items:center; gap:12px;
+  box-shadow:0 4px 20px #000a;
+}
+#google-signin-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px #000c; }
+#google-signin-btn img { width:20px; height:20px; }
+
+/* SETUP */
+#screen-setup {
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:40px 20px;
+}
+.setup-wrap { width:100%; max-width:540px; }
+.setup-step { display:none; }
+.setup-step.active { display:block; animation: slideIn .35s ease; }
+.setup-title { font-size:22px; font-weight:700; margin-bottom:6px; }
+.setup-sub { color:var(--muted); font-size:14px; margin-bottom:28px; }
+.setup-label { font-size:12px; color:var(--muted); letter-spacing:2px; margin-bottom:8px; }
+.setup-input {
+  width:100%; background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:13px 16px; color:var(--text); font-size:15px;
+  outline:none; transition:border .18s;
+}
+.setup-input:focus { border-color:#4FC3F788; }
+.setup-btn {
+  width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:600;
+  background:linear-gradient(135deg,#4FC3F7,#818cf8); color:#0b0f1a;
+  margin-top:20px; box-shadow:0 4px 16px #4FC3F733;
+}
+.setup-btn:hover { box-shadow:0 8px 24px #4FC3F755; }
+.setup-btn-sec {
+  width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:500;
+  background:var(--surface); border:1px solid var(--border); color:var(--muted);
+  margin-top:10px;
+}
+.matiere-chip {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 14px; border-radius:100px; font-size:13px; font-weight:600;
+  margin:4px; cursor:pointer; border:2px solid transparent;
+  transition:all .18s;
+}
+.matiere-chip.selected { border-color: currentColor; }
+.chip-remove { opacity:.6; font-size:11px; }
+.matiere-add-row { display:flex; gap:8px; margin-top:12px; }
+.matiere-add-input {
+  flex:1; background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:10px 14px; color:var(--text); font-size:14px; outline:none;
+}
+.matiere-add-btn {
+  padding:10px 16px; border-radius:10px; background:#4FC3F722;
+  color:#4FC3F7; font-size:13px; font-weight:600;
+}
+.pomodoro-opts { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.pomo-opt {
+  padding:10px 20px; border-radius:12px; background:var(--surface);
+  border:1px solid var(--border); color:var(--muted); font-size:14px; font-weight:500;
+}
+.pomo-opt.selected { background:#4FC3F722; border-color:#4FC3F7; color:#4FC3F7; }
+.step-dots { display:flex; gap:6px; justify-content:center; margin-bottom:32px; }
+.step-dot { width:6px; height:6px; border-radius:50%; background:var(--faint); transition:all .2s; }
+.step-dot.active { background:#4FC3F7; width:18px; border-radius:3px; }
+
+/* HOME */
+.widget-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:13px; }
+.widget-sm { padding:18px 20px; }
+.widget-label { font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:8px; }
+.widget-val { font-family:var(--font-mono); font-size:36px; line-height:1; margin-bottom:4px; }
+.widget-sub { font-size:12px; color:#334155; }
+.progress-bar { height:4px; background:#1e293b; border-radius:2px; overflow:hidden; margin-top:10px; }
+.progress-fill { height:100%; border-radius:2px; transition:width .5s; }
+
+.concours-widget {
+  background:linear-gradient(120deg,#0f172a 50%,#1e1b4b);
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:13px;
+}
+.concours-jx { font-family:var(--font-mono); font-size:50px; color:#818cf8; line-height:1; font-weight:700; }
+.concours-sub { font-size:14px; color:#334155; }
+
+.week-widget { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+
+.matiere-list { display:flex; flex-direction:column; gap:8px; }
+.mat-btn {
+  background:var(--surface); border-radius:14px;
+  padding:15px 20px; text-align:left;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.mat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.mat-name { font-weight:600; font-size:14px; }
+.mat-id { font-size:10px; color:#334155; margin-top:1px; }
+.mat-stat { font-family:var(--font-mono); font-size:13px; color:var(--text); }
+.mat-stat-sub { font-size:10px; color:#334155; margin-top:2px; text-align:right; }
+
+/* TIMER */
+#screen-timer {
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:80px 20px 40px; position:relative;
+  text-align:center;
+}
+.timer-badge {
+  border-radius:100px; padding:8px 30px;
+  font-weight:700; font-size:15px; letter-spacing:3px; margin-bottom:48px;
+  color:#0b0f1a; display:inline-block; width:auto; align-self:center;
+}
+.timer-clock {
+  font-family:var(--font-mono);
+  font-size:clamp(58px,15vw,108px);
+  font-weight:700; color:#fff;
+  letter-spacing:-2px; line-height:1; margin-bottom:18px;
+}
+.timer-window {
+  background:#ffffff0d; border:1px solid #ffffff12; border-radius:100px;
+  padding:6px 20px; margin-bottom:10px; font-size:13px; color:#64748b;
+  font-family:var(--font-mono); display:flex; align-items:center; gap:12px;
+}
+.timer-bar { width:min(300px,75vw); height:3px; background:#ffffff0a; border-radius:2px; overflow:hidden; margin-bottom:40px; }
+.timer-bar-fill { height:100%; border-radius:2px; transition:width .5s; }
+.timer-phase { font-size:11px; color:#334155; letter-spacing:2px; margin-bottom:28px; }
+.timer-controls { display:flex; gap:14px; align-items:center; margin-bottom:32px; }
+.timer-icon-btn {
+  width:50px; height:50px; border-radius:14px;
+  background:#1e293b; color:#475569; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+}
+.timer-play {
+  width:78px; height:78px; border-radius:22px; font-size:28px;
+  display:flex; align-items:center; justify-content:center;
+}
+.timer-save {
+  border-radius:100px; padding:12px 30px; font-size:14px; font-weight:600;
+  background:#16a34a; color:#fff; box-shadow:0 4px 16px #16a34a44;
+  display:flex; align-items:center; gap:8px; margin-bottom:24px;
+}
+.timer-footer {
+  position:absolute; bottom:28px; font-size:12px; color:#334155; text-align:center;
+}
+
+/* STATS */
+.stats-grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-bottom:13px; }
+.stat-mini { padding:15px; }
+.stat-mini-label { font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:7px; }
+.stat-mini-val { font-family:var(--font-mono); font-size:20px; font-weight:700; }
+.jour-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.jour-cell { background:#0f172a; border-radius:12px; padding:13px 15px; }
+.jour-cell-label { font-size:11px; color:var(--muted); margin-bottom:5px; }
+.jour-cell-val { font-family:var(--font-mono); font-size:18px; }
+.mat-bar-row { margin-bottom:11px; }
+.mat-bar-header { display:flex; justify-content:space-between; margin-bottom:5px; }
+.mat-bar-name { font-size:13px; color:#94a3b8; display:flex; align-items:center; gap:8px; }
+.mat-bar-val { font-family:var(--font-mono); font-size:12px; }
+.mat-bar-bg { height:5px; background:#1e293b; border-radius:3px; overflow:hidden; }
+.mat-bar-fill { height:100%; border-radius:3px; transition:width .6s; }
+
+/* CALENDAR */
+.cal-grid { display:grid; grid-template-columns:1fr 300px; gap:14px; align-items:start; }
+.cal-table-header {
+  display:grid; grid-template-columns:88px 1fr 60px 72px;
+  gap:8px; padding:8px 10px; font-size:10px; color:#334155;
+  letter-spacing:1px; border-bottom:1px solid var(--faint); margin-bottom:4px;
+}
+.cal-table-body { max-height:62vh; overflow-y:auto; }
+.cal-row {
+  display:grid; grid-template-columns:88px 1fr 60px 72px;
+  gap:8px; padding:10px 10px; cursor:pointer; border-radius:10px;
+  border-left:3px solid transparent; transition:background .12s; margin-bottom:1px;
+}
+.cal-row:hover { background:#ffffff08; }
+.cal-row.selected { background:#1e3a5f33; border-left-color:#4FC3F7; }
+.cal-row.today-row { background:#ffffff05; }
+.cal-date { font-family:var(--font-mono); font-size:11px; }
+.cal-dur { font-size:13px; }
+.cal-obj { font-size:12px; color:#334155; }
+.cal-ecart { font-size:12px; font-family:var(--font-mono); }
+.day-detail { display:flex; flex-direction:column; gap:12px; }
+.day-session-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 0; border-bottom:1px solid var(--faint);
+}
+.concours-mini {
+  background:#1e1b4b1a; border:1px solid #818cf822;
+  border-radius:var(--radius); padding:14px 18px;
+}
+
+/* User avatar */
+.user-btn {
+  width:32px; height:32px; border-radius:50%; overflow:hidden;
+  border:2px solid #ffffff22; cursor:pointer; background:var(--surface2);
+  display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600;
+}
+.user-btn img { width:100%; height:100%; object-fit:cover; }
+</style>
+</head>
+<body>
+
+<!-- Notification -->
+<div id="notif"></div>
+
+<!-- NAV -->
+<nav id="nav" style="display:none">
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="nav-back" id="btn-back" style="display:none">←</button>
+    <span class="nav-logo">STUDY•TRACKER</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nav-tabs" id="nav-tabs">
+      <button class="nav-tab active" data-view="home">🏠</button>
+      <button class="nav-tab" data-view="stats">📊</button>
+      <button class="nav-tab" data-view="calendar">📅</button>
+    </div>
+    <div class="user-btn" id="user-avatar" title="Se déconnecter"></div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     SCREEN: LOGIN
+══════════════════════════════════════ -->
+<div id="screen-login">
+  <div class="anim-fadeup" style="text-align:center">
+    <div class="login-title">STUDY TRACKER</div>
+    <div class="login-sub">Tes révisions,<br/><span>organisées.</span></div>
+  </div>
+  <button id="google-signin-btn" class="anim-fadeup" style="animation-delay:.15s">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"/>
+    Continuer avec Google
+  </button>
+  <p class="anim-fadeup" style="animation-delay:.25s;font-size:12px;color:#334155;text-align:center">
+    Tes données sont sauvegardées en ligne<br/>et accessibles depuis n'importe quel appareil.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: SETUP
+══════════════════════════════════════ -->
+<div id="screen-setup">
+  <div class="setup-wrap anim-fadeup">
+    <div class="step-dots">
+      <div class="step-dot active" id="dot-0"></div>
+      <div class="step-dot" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+    </div>
+
+    <!-- Step 0: Concours date -->
+    <div class="setup-step active" id="step-0">
+      <div class="setup-title">Date du concours 🎓</div>
+      <div class="setup-sub">À quelle date commence ton concours ?</div>
+      <div class="setup-label">DATE DE DÉBUT</div>
+      <input type="date" class="setup-input" id="setup-date" value="2026-05-06"/>
+      <div class="setup-label" style="margin-top:16px">OBJECTIF QUOTIDIEN (heures)</div>
+      <div class="pomodoro-opts" id="goal-opts">
+        <button class="pomo-opt" data-val="6">6h</button>
+        <button class="pomo-opt selected" data-val="8">8h</button>
+        <button class="pomo-opt" data-val="10">10h</button>
+        <button class="pomo-opt" data-val="12">12h</button>
+      </div>
+      <button class="setup-btn" onclick="setupNext()">Suivant →</button>
+    </div>
+
+    <!-- Step 1: Matières -->
+    <div class="setup-step" id="step-1">
+      <div class="setup-title">Tes matières 📚</div>
+      <div class="setup-sub">Sélectionne ou ajoute tes matières.</div>
+      <div id="matiere-chips"></div>
+      <div class="matiere-add-row">
+        <input class="matiere-add-input" id="matiere-add-input" placeholder="Ajouter une matière..." maxlength="20"/>
+        <button class="matiere-add-btn" onclick="addCustomMatiere()">+ Ajouter</button>
+      </div>
+      <button class="setup-btn" onclick="setupNext()">Suivant →</button>
+      <button class="setup-btn-sec" onclick="setupPrev()">← Retour</button>
+    </div>
+
+    <!-- Step 2: Pomodoro -->
+    <div class="setup-step" id="step-2">
+      <div class="setup-title">Durée du pomodoro ⏱</div>
+      <div class="setup-sub">Combien de temps par session de travail ?</div>
+      <div class="setup-label">SESSION</div>
+      <div class="pomodoro-opts" id="pomo-opts">
+        <button class="pomo-opt" data-val="25">25 min</button>
+        <button class="pomo-opt" data-val="45">45 min</button>
+        <button class="pomo-opt selected" data-val="60">60 min</button>
+        <button class="pomo-opt" data-val="90">90 min</button>
+      </div>
+      <div class="setup-label">PAUSE</div>
+      <div class="pomodoro-opts" id="break-opts">
+        <button class="pomo-opt" data-val="5">5 min</button>
+        <button class="pomo-opt selected" data-val="10">10 min</button>
+        <button class="pomo-opt" data-val="15">15 min</button>
+      </div>
+      <button class="setup-btn" onclick="finishSetup()">C'est parti ! 🚀</button>
+      <button class="setup-btn-sec" onclick="setupPrev()">← Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: HOME
+══════════════════════════════════════ -->
+<div id="screen-home">
+  <div class="page">
+    <div class="widget-grid">
+      <!-- Journées d'étude -->
+      <div class="card widget-sm" style="background:linear-gradient(135deg,#0f172a,#111827)">
+        <div class="widget-label">JOURNÉES D'ÉTUDE</div>
+        <div class="widget-val" id="home-jours" style="color:#4FC3F7">0</div>
+        <div class="widget-sub" id="home-jours-sub">/ — jours · <span style="color:#69DB7C">0 ≥ objectif</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="home-jours-bar" style="background:linear-gradient(to right,#4FC3F7,#818cf8);width:0%"></div></div>
+      </div>
+      <!-- Objectif du jour -->
+      <div class="card widget-sm" style="background:linear-gradient(135deg,#0f172a,#111827)">
+        <div class="widget-label">OBJECTIF DU JOUR</div>
+        <div class="widget-val" id="home-today" style="color:#FFD43B">0min</div>
+        <div class="widget-sub" id="home-today-sub">Objectif <span id="home-goal-label">8h</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="home-today-bar" style="background:linear-gradient(to right,#FFD43B,#f97316);width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Concours -->
+    <div class="card concours-widget" style="margin-bottom:13px">
+      <div>
+        <div class="widget-label" id="home-concours-label">CONCOURS · —</div>
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <div class="concours-jx" id="home-jx">J-—</div>
+          <div class="concours-sub" id="home-jx-sub">— jours restants</div>
+        </div>
+      </div>
+      <svg width="68" height="68" style="transform:rotate(-90deg);flex-shrink:0">
+        <circle cx="34" cy="34" r="26" fill="none" stroke="#1e293b" stroke-width="5"/>
+        <circle id="home-ring" cx="34" cy="34" r="26" fill="none" stroke="#818cf8" stroke-width="5"
+          stroke-linecap="round"
+          stroke-dasharray="163.4"
+          stroke-dashoffset="163.4"/>
+      </svg>
+    </div>
+
+    <!-- Semaine -->
+    <div class="card week-widget" style="margin-bottom:18px">
+      <div>
+        <div class="widget-label">CETTE SEMAINE</div>
+        <div style="font-family:var(--font-mono);font-size:24px" id="home-week">—</div>
+      </div>
+      <div style="text-align:right">
+        <div class="widget-label">MOY. / JOUR ACTIF</div>
+        <div style="font-family:var(--font-mono);font-size:18px;color:#FFD43B" id="home-avg">—</div>
+      </div>
+    </div>
+
+    <!-- Matières -->
+    <div style="font-size:10px;color:#334155;letter-spacing:2px;margin-bottom:12px">CHOISIR UNE MATIÈRE</div>
+    <div class="matiere-list" id="home-matiere-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: TIMER
+══════════════════════════════════════ -->
+<div id="screen-timer">
+  <div class="timer-badge" id="timer-badge">MAT</div>
+  <div class="timer-clock" id="timer-clock">60:00</div>
+  <div class="timer-window" id="timer-window" style="display:none">
+    <span id="timer-from">--:--</span>
+    <span style="color:#334155">→</span>
+    <span id="timer-to">--:--</span>
+  </div>
+  <div class="timer-bar"><div class="timer-bar-fill" id="timer-bar-fill" style="width:0%"></div></div>
+  <div class="timer-phase" id="timer-phase">SESSION FOCUS · 0 session</div>
+  <div class="timer-controls">
+    <button class="timer-icon-btn" id="btn-reset">↺</button>
+    <button class="timer-play" id="btn-play">▶</button>
+    <button class="timer-icon-btn" id="btn-skip">⏭</button>
+  </div>
+  <button class="timer-save" id="btn-save-partial" style="display:none">✓ Enregistrer la session</button>
+  <div class="timer-footer" id="timer-footer"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: STATS
+══════════════════════════════════════ -->
+<div id="screen-stats">
+  <div class="page">
+    <div style="font-size:22px;font-weight:700;margin-bottom:22px">Statistiques</div>
+    <div class="stats-grid3">
+      <div class="card stat-mini">
+        <div class="stat-mini-label">AUJOURD'HUI</div>
+        <div class="stat-mini-val" id="stat-today" style="color:#FFD43B">—</div>
+      </div>
+      <div class="card stat-mini">
+        <div class="stat-mini-label">CETTE SEMAINE</div>
+        <div class="stat-mini-val" id="stat-week" style="color:#4FC3F7">—</div>
+      </div>
+      <div class="card stat-mini">
+        <div class="stat-mini-label">TOTAL</div>
+        <div class="stat-mini-val" id="stat-total" style="color:#C084FC">—</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:13px">
+      <div class="widget-label">JOURNÉES D'ÉTUDE</div>
+      <div class="jour-grid" id="stat-jour-grid"></div>
+    </div>
+    <div class="card">
+      <div class="widget-label">RÉPARTITION TOTALE</div>
+      <div id="stat-mat-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: CALENDAR
+══════════════════════════════════════ -->
+<div id="screen-calendar">
+  <div class="page-wide">
+    <div class="cal-grid">
+      <div class="card">
+        <div class="widget-label" id="cal-header">JOURNÉES D'ÉTUDE</div>
+        <div class="cal-table-header">
+          <span>DATE</span><span>DURÉE</span><span>OBJ.</span><span>ÉCART</span>
+        </div>
+        <div class="cal-table-body" id="cal-table-body"></div>
+      </div>
+      <div class="day-detail">
+        <div class="card" id="cal-detail-card">
+          <div style="font-size:10px;color:#4FC3F7;letter-spacing:2px;margin-bottom:4px" id="cal-detail-date"></div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:16px" id="cal-detail-day"></div>
+          <div id="cal-detail-sessions"></div>
+        </div>
+        <div class="concours-mini">
+          <div style="font-size:10px;color:#818cf8;letter-spacing:2px;margin-bottom:4px">CONCOURS</div>
+          <div style="font-family:var(--font-mono);font-size:22px" id="cal-jx">J-—</div>
+          <div style="font-size:12px;color:#334155;margin-top:2px" id="cal-concours-date">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CLIENT_ID = "647012326570-kfrs951ulnu9nd8a0cp12ahcd7027rtg.apps.googleusercontent.com";
+
+const DEFAULT_MATIERES = [
+  { id:"BIOPHY",      label:"Biophysique",     color:"#4FC3F7" },
+  { id:"BIOCELL",     label:"Bio Cellulaire",  color:"#69DB7C" },
+  { id:"BIOSTAT",     label:"Biostatistiques", color:"#FFD43B" },
+  { id:"BIOMARQUEUR", label:"Biomarqueurs",    color:"#F783AC" },
+  { id:"DMB",         label:"DMB",             color:"#C084FC" },
+  { id:"ANAT",        label:"Anatomie",        color:"#38BDF8" },
+  { id:"MAPS",        label:"MAPS",            color:"#FBBF24" },
+  { id:"ECO",         label:"Économie",        color:"#34D399" },
+];
+
+const CHIP_COLORS = ["#4FC3F7","#69DB7C","#FFD43B","#F783AC","#C084FC","#38BDF8","#FBBF24","#34D399","#FB923C","#A78BFA"];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let user = null;
+let cfg = null; // { concours, goalHours, matieres:[{id,label,color}], pomoMin, breakMin }
+let studyData = {}; // { days:{date:{matId:secs}}, weeks:{weekKey:{matId:secs}} }
+
+let timerMatId = null;
+let timerPhase = "work"; // work | break
+let timerRunning = false;
+let timerElapsed = 0;
+let timerLeft = 0;
+let timerTick = null;
+let timerStart = null;
+let timerSessCount = 0;
+
+let currentView = "home";
+let calSelDay = getToday();
+let setupStep = 0;
+let setupGoal = 8;
+let setupPomo = 60;
+let setupBreak = 10;
+let setupMatieres = [...DEFAULT_MATIERES];
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function getToday() { return new Date().toISOString().split("T")[0]; }
+function getWeekKey() {
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return d.toISOString().split("T")[0];
+}
+function fmt(s) {
+  if(s<=0)return"0min";
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  if(h===0)return m+"min"; if(m===0)return h+"h"; return h+"h"+String(m).padStart(2,"0");
+}
+function fmtTimer(s) {
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  return h>0
+    ?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
+    :`${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+}
+function fmtDate(ds) {
+  return new Date(ds+"T12:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit"});
+}
+function fmtTime(ms) {
+  return new Date(ms).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+}
+function getDaysLeft() {
+  if(!cfg)return 0;
+  return Math.max(0,Math.ceil((new Date(cfg.concours)-new Date())/86400000));
+}
+function getTotalDays() {
+  if(!cfg)return 46;
+  const start=new Date("2026-03-20"); // or first login date
+  return Math.ceil((new Date(cfg.concours)-start)/86400000);
+}
+function getDaysList() {
+  const days=[],s=new Date(getToday()),left=getDaysLeft();
+  for(let i=0;i<left;i++){const d=new Date(s);d.setDate(d.getDate()+i);days.push(d.toISOString().split("T")[0]);}
+  return days;
+}
+function getWorkSec() { return (cfg?.pomoMin||60)*60; }
+function getBreakSec() { return (cfg?.breakMin||10)*60; }
+function getGoalSec() { return (cfg?.goalHours||8)*3600; }
+
+function showNotif(msg) {
+  const el=document.getElementById("notif");
+  el.textContent=msg; el.style.display="block";
+  setTimeout(()=>el.style.display="none",3500);
+}
+
+// ── STORAGE (localStorage keyed by user id) ───────────────────────────────────
+function storageKey(k) { return `st_${user?.sub||"guest"}_${k}`; }
+function saveData() {
+  localStorage.setItem(storageKey("data"), JSON.stringify(studyData));
+}
+function loadData() {
+  try { studyData=JSON.parse(localStorage.getItem(storageKey("data"))||"{}"); } catch{studyData={};}
+}
+function saveCfg() {
+  localStorage.setItem(storageKey("cfg"), JSON.stringify(cfg));
+}
+function loadCfg() {
+  try { cfg=JSON.parse(localStorage.getItem(storageKey("cfg"))||"null"); } catch{cfg=null;}
+}
+
+// ── GOOGLE SIGN IN ─────────────────────────────────────────────────────────────
+function initGoogle() {
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: handleCredential,
+    auto_select: true,
+  });
+  // Try silent sign in first
+  google.accounts.id.prompt((notification) => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      showScreen("login");
+    }
+  });
+}
+
+function handleCredential(response) {
+  const payload = parseJwt(response.credential);
+  user = { sub: payload.sub, name: payload.name, email: payload.email, picture: payload.picture };
+  onUserLoaded();
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(base64));
+}
+
+document.getElementById("google-signin-btn").onclick = () => {
+  google.accounts.id.prompt();
+};
+
+function onUserLoaded() {
+  // Update avatar
+  const av=document.getElementById("user-avatar");
+  if(user.picture) av.innerHTML=`<img src="${user.picture}" alt="${user.name}"/>`;
+  else av.textContent=user.name[0].toUpperCase();
+  av.title=`${user.name} · Se déconnecter`;
+  av.onclick=signOut;
+
+  loadCfg();
+  loadData();
+
+  if(!cfg) {
+    showScreen("setup");
+    initSetup();
+  } else {
+    showScreen("home");
+    showNav();
+    refreshAll();
+  }
+}
+
+function signOut() {
+  if(!confirm("Se déconnecter ?"))return;
+  google.accounts.id.disableAutoSelect();
+  user=null; cfg=null; studyData={};
+  showScreen("login");
+  document.getElementById("nav").style.display="none";
+}
+
+// ── SCREENS ────────────────────────────────────────────────────────────────────
+function showScreen(name) {
+  ["login","setup","home","timer","stats","calendar"].forEach(s=>{
+    document.getElementById("screen-"+s).style.display="none";
+  });
+  document.getElementById("screen-"+name).style.display=
+    (name==="login"||name==="setup")?"flex":"block";
+  currentView=name;
+}
+
+function showNav() {
+  document.getElementById("nav").style.display="flex";
+}
+
+function setView(v) {
+  stopTimer();
+  showScreen(v);
+  document.querySelectorAll(".nav-tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.view===v);
+  });
+  document.getElementById("btn-back").style.display="none";
+  if(v==="home") refreshHome();
+  if(v==="stats") refreshStats();
+  if(v==="calendar") refreshCalendar();
+}
+
+document.querySelectorAll(".nav-tab").forEach(t=>{
+  t.onclick=()=>setView(t.dataset.view);
+});
+document.getElementById("btn-back").onclick=()=>setView("home");
+
+// ── SETUP ──────────────────────────────────────────────────────────────────────
+function initSetup() {
+  setupStep=0; setupGoal=8; setupPomo=60; setupBreak=10;
+  setupMatieres=[...DEFAULT_MATIERES];
+  renderSetupStep();
+  renderMatiereChips();
+  initPomoOpts();
+}
+
+function renderSetupStep() {
+  document.querySelectorAll(".setup-step").forEach((el,i)=>{
+    el.classList.toggle("active",i===setupStep);
+  });
+  document.querySelectorAll(".step-dot").forEach((el,i)=>{
+    el.classList.toggle("active",i===setupStep);
+  });
+}
+
+function setupNext() {
+  if(setupStep===0){
+    const d=document.getElementById("setup-date").value;
+    if(!d){showNotif("⚠️ Choisis une date");return;}
+    setupStep=1; renderSetupStep(); renderMatiereChips();
+  } else if(setupStep===1){
+    if(setupMatieres.length===0){showNotif("⚠️ Ajoute au moins une matière");return;}
+    setupStep=2; renderSetupStep();
+  }
+}
+function setupPrev() {
+  if(setupStep>0){setupStep--;renderSetupStep();}
+}
+
+function renderMatiereChips() {
+  const wrap=document.getElementById("matiere-chips");
+  wrap.innerHTML="";
+  setupMatieres.forEach((m,i)=>{
+    const chip=document.createElement("span");
+    chip.className="matiere-chip selected";
+    chip.style.background=m.color+"22";
+    chip.style.color=m.color;
+    chip.style.borderColor=m.color;
+    chip.innerHTML=`${m.label} <span class="chip-remove" onclick="removeMatiere(${i})">✕</span>`;
+    wrap.appendChild(chip);
+  });
+}
+
+function removeMatiere(i) {
+  setupMatieres.splice(i,1);
+  renderMatiereChips();
+}
+
+function addCustomMatiere() {
+  const inp=document.getElementById("matiere-add-input");
+  const val=inp.value.trim().toUpperCase();
+  if(!val)return;
+  const color=CHIP_COLORS[setupMatieres.length%CHIP_COLORS.length];
+  setupMatieres.push({id:val, label:val, color});
+  inp.value="";
+  renderMatiereChips();
+}
+document.getElementById("matiere-add-input").onkeydown=e=>{if(e.key==="Enter")addCustomMatiere();};
+
+function initPomoOpts() {
+  document.querySelectorAll("#goal-opts .pomo-opt").forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll("#goal-opts .pomo-opt").forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected"); setupGoal=+b.dataset.val;
+    };
+  });
+  document.querySelectorAll("#pomo-opts .pomo-opt").forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll("#pomo-opts .pomo-opt").forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected"); setupPomo=+b.dataset.val;
+    };
+  });
+  document.querySelectorAll("#break-opts .pomo-opt").forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll("#break-opts .pomo-opt").forEach(x=>x.classList.remove("selected"));
+      b.classList.add("selected"); setupBreak=+b.dataset.val;
+    };
+  });
+}
+
+function finishSetup() {
+  cfg={
+    concours: document.getElementById("setup-date").value+"T08:00:00",
+    goalHours: setupGoal,
+    matieres: setupMatieres,
+    pomoMin: setupPomo,
+    breakMin: setupBreak,
+    setupDate: getToday(),
+  };
+  saveCfg();
+  showScreen("home");
+  showNav();
+  refreshAll();
+}
+
+// ── DATA HELPERS ───────────────────────────────────────────────────────────────
+function recordWork(matId, secs) {
+  const today=getToday(), week=getWeekKey();
+  if(!studyData.days)studyData.days={};
+  if(!studyData.days[today])studyData.days[today]={};
+  studyData.days[today][matId]=(studyData.days[today][matId]||0)+secs;
+  if(!studyData.weeks)studyData.weeks={};
+  if(!studyData.weeks[week])studyData.weeks[week]={};
+  studyData.weeks[week][matId]=(studyData.weeks[week][matId]||0)+secs;
+  saveData();
+  refreshAll();
+}
+
+function getAllTimeMap() {
+  const m={};
+  cfg.matieres.forEach(x=>m[x.id]=0);
+  Object.values(studyData.days||{}).forEach(d=>{
+    Object.entries(d).forEach(([id,s])=>{if(m[id]!==undefined)m[id]+=s;});
+  });
+  return m;
+}
+
+function getActiveDays() {
+  return Object.keys(studyData.days||{}).filter(d=>Object.values(studyData.days[d]).some(s=>s>0));
+}
+
+function getGoodDays() {
+  return getActiveDays().filter(d=>{
+    const tot=Object.values(studyData.days[d]).reduce((a,b)=>a+b,0);
+    return tot>=getGoalSec();
+  });
+}
+
+// ── HOME ───────────────────────────────────────────────────────────────────────
+function refreshHome() {
+  if(!cfg)return;
+  const today=getToday(), week=getWeekKey();
+  const dayMap=studyData.days?.[today]||{};
+  const weekMap=studyData.weeks?.[week]||{};
+  const todayTotal=Object.values(dayMap).reduce((a,b)=>a+b,0);
+  const weekTotal=Object.values(weekMap).reduce((a,b)=>a+b,0);
+  const activeDays=getActiveDays(), goodDays=getGoodDays();
+  const daysLeft=getDaysLeft(), totalDays=getTotalDays();
+  const daysDone=Math.max(0,totalDays-daysLeft);
+  const goalSec=getGoalSec();
+  const dailyPct=Math.min(1,todayTotal/goalSec);
+
+  // Journées
+  document.getElementById("home-jours").textContent=activeDays.length;
+  document.getElementById("home-jours-sub").innerHTML=
+    `/ ${totalDays} jours · <span style="color:#69DB7C">${goodDays.length} ≥ objectif</span>`;
+  document.getElementById("home-jours-bar").style.width=`${(activeDays.length/totalDays)*100}%`;
+
+  // Objectif du jour
+  const todayEl=document.getElementById("home-today");
+  todayEl.textContent=fmt(todayTotal);
+  todayEl.style.color=dailyPct>=1?"#69DB7C":"#FFD43B";
+  document.getElementById("home-goal-label").textContent=cfg.goalHours+"h";
+  const todayBar=document.getElementById("home-today-bar");
+  todayBar.style.width=`${dailyPct*100}%`;
+  todayBar.style.background=dailyPct>=1
+    ?"linear-gradient(to right,#69DB7C,#34d399)"
+    :"linear-gradient(to right,#FFD43B,#f97316)";
+
+  // Concours
+  const concoursDate=new Date(cfg.concours);
+  document.getElementById("home-concours-label").textContent=
+    `CONCOURS · ${concoursDate.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}).toUpperCase()}`;
+  document.getElementById("home-jx").textContent=`J-${daysLeft}`;
+  document.getElementById("home-jx-sub").textContent=`${daysLeft} jours restants`;
+  const ringPct=daysDone/totalDays;
+  const circ=2*Math.PI*26;
+  document.getElementById("home-ring").setAttribute("stroke-dashoffset",circ*(1-ringPct));
+
+  // Semaine
+  document.getElementById("home-week").textContent=fmt(weekTotal);
+  const avg=activeDays.length>0?Math.round(weekTotal/activeDays.length):0;
+  const avgEl=document.getElementById("home-avg");
+  avgEl.textContent=activeDays.length>0?fmt(avg):"—";
+  avgEl.style.color=avg>=goalSec?"#69DB7C":"#FFD43B";
+
+  // Matières
+  const list=document.getElementById("home-matiere-list");
+  list.innerHTML="";
+  cfg.matieres.forEach(m=>{
+    const ds=dayMap[m.id]||0, ws=(weekMap[m.id]||0);
+    const btn=document.createElement("button");
+    btn.className="mat-btn";
+    btn.style.border=`1px solid ${m.color}22`;
+    btn.onclick=()=>launchTimer(m);
+    btn.onmouseenter=()=>{btn.style.borderColor=m.color+"66";btn.style.background=m.color+"11";};
+    btn.onmouseleave=()=>{btn.style.borderColor=m.color+"22";btn.style.background="var(--surface)";};
+    btn.innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="mat-dot" style="background:${m.color};box-shadow:0 0 7px ${m.color}88"></div>
+        <div>
+          <div class="mat-name" style="color:${m.color}">${m.label}</div>
+          <div class="mat-id">${m.id}</div>
+        </div>
+      </div>
+      <div>
+        <div class="mat-stat">${fmt(ds)}</div>
+        ${ws>0?`<div class="mat-stat-sub">${fmt(ws)} / sem</div>`:""}
+      </div>`;
+    list.appendChild(btn);
+  });
+}
+
+// ── TIMER ──────────────────────────────────────────────────────────────────────
+function launchTimer(m) {
+  timerMatId=m.id; timerPhase="work";
+  timerElapsed=0; timerLeft=getWorkSec();
+  timerRunning=false; timerSessCount=0;
+  stopTimer();
+
+  document.getElementById("btn-back").style.display="flex";
+  document.querySelectorAll(".nav-tab").forEach(t=>t.classList.remove("active"));
+
+  const badge=document.getElementById("timer-badge");
+  badge.textContent=m.id;
+  badge.style.background=m.color;
+
+  document.getElementById("screen-timer").style.background=
+    `linear-gradient(160deg,${m.color}18 0%,#0b0f1a 65%)`;
+  document.getElementById("btn-play").style.background=
+    `linear-gradient(135deg,${m.color},${m.color}bb)`;
+  document.getElementById("btn-play").style.color="#0b0f1a";
+  document.getElementById("timer-bar-fill").style.background=m.color;
+
+  document.getElementById("btn-play").onclick=toggleTimer;
+  document.getElementById("btn-reset").onclick=resetTimer;
+  document.getElementById("btn-skip").onclick=skipPhase;
+  document.getElementById("btn-save-partial").onclick=savePartial;
+
+  showScreen("timer");
+  renderTimer();
+}
+
+function toggleTimer() {
+  if(timerRunning){
+    stopTimer();
+  } else {
+    timerStart=Date.now()-timerElapsed*1000;
+    timerTick=setInterval(tickTimer,500);
+    timerRunning=true;
+    document.getElementById("btn-play").textContent="⏸";
+    document.getElementById("timer-window").style.display="flex";
+  }
+}
+
+function stopTimer() {
+  clearInterval(timerTick); timerRunning=false;
+  document.getElementById("btn-play").textContent="▶";
+}
+
+function tickTimer() {
+  timerElapsed=Math.floor((Date.now()-timerStart)/1000);
+  const dur=timerPhase==="work"?getWorkSec():getBreakSec();
+  timerLeft=Math.max(0,dur-timerElapsed);
+  renderTimer();
+  if(timerLeft===0){
+    stopTimer();
+    if(timerPhase==="work"){
+      recordWork(timerMatId,getWorkSec());
+      timerSessCount++;
+      timerPhase="break"; timerElapsed=0; timerLeft=getBreakSec();
+      showNotif("🎉 Session terminée ! Pause méritée.");
+    } else {
+      timerPhase="work"; timerElapsed=0; timerLeft=getWorkSec();
+      showNotif("💪 C'est reparti !");
+    }
+    renderTimer();
+  }
+}
+
+function resetTimer() {
+  stopTimer(); timerPhase="work"; timerElapsed=0; timerLeft=getWorkSec();
+  document.getElementById("timer-window").style.display="none";
+  renderTimer();
+}
+
+function skipPhase() {
+  stopTimer();
+  if(timerPhase==="work"){
+    if(timerElapsed>60)recordWork(timerMatId,timerElapsed);
+    timerPhase="break"; timerElapsed=0; timerLeft=getBreakSec();
+  } else {
+    timerPhase="work"; timerElapsed=0; timerLeft=getWorkSec();
+  }
+  renderTimer();
+}
+
+function savePartial() {
+  recordWork(timerMatId,timerElapsed);
+  timerElapsed=0; timerLeft=getWorkSec();
+  const m=cfg.matieres.find(x=>x.id===timerMatId);
+  showNotif(`✅ ${fmt(timerElapsed||getWorkSec())} enregistrés en ${m?.label||timerMatId}`);
+  renderTimer();
+}
+
+function renderTimer() {
+  document.getElementById("timer-clock").textContent=fmtTimer(timerLeft);
+  const dur=timerPhase==="work"?getWorkSec():getBreakSec();
+  const pct=(dur-timerLeft)/dur*100;
+  document.getElementById("timer-bar-fill").style.width=pct+"%";
+  document.getElementById("timer-phase").textContent=
+    (timerPhase==="work"?"SESSION FOCUS":"PAUSE")+` · ${timerSessCount} session${timerSessCount!==1?"s":""}`;
+
+  // Animate clock when almost done
+  const clock=document.getElementById("timer-clock");
+  clock.style.animation=timerRunning&&timerLeft<=10?"pulse 1s infinite":"none";
+
+  // Time window
+  if(timerRunning||timerElapsed>0){
+    document.getElementById("timer-from").textContent=fmtTime(Date.now()-timerElapsed*1000);
+    document.getElementById("timer-to").textContent=fmtTime(Date.now()+timerLeft*1000);
+  }
+
+  // Save partial button - show if paused during work phase with at least 30s elapsed
+  document.getElementById("btn-save-partial").style.display=
+    timerElapsed>30&&!timerRunning&&timerPhase==="work"?"flex":"none";
+
+  // Footer
+  const today=getToday();
+  const dayMap=studyData.days?.[today]||{};
+  const m=cfg?.matieres.find(x=>x.id===timerMatId);
+  const todayTotal=Object.values(dayMap).reduce((a,b)=>a+b,0);
+  document.getElementById("timer-footer").innerHTML=
+    `${m?.label||""} aujourd'hui · <span style="color:${m?.color||"#fff"}">${fmt(dayMap[timerMatId]||0)}</span>`+
+    `&nbsp;&nbsp;·&nbsp;&nbsp;Total · <span style="color:#64748b">${fmt(todayTotal)}</span> / ${cfg?.goalHours||8}h`;
+}
+
+// ── STATS ──────────────────────────────────────────────────────────────────────
+function refreshStats() {
+  if(!cfg)return;
+  const today=getToday(),week=getWeekKey();
+  const dayMap=studyData.days?.[today]||{};
+  const weekMap=studyData.weeks?.[week]||{};
+  const todayTotal=Object.values(dayMap).reduce((a,b)=>a+b,0);
+  const weekTotal=Object.values(weekMap).reduce((a,b)=>a+b,0);
+  const allMap=getAllTimeMap();
+  const allTotal=Object.values(allMap).reduce((a,b)=>a+b,0);
+  const activeDays=getActiveDays(),goodDays=getGoodDays();
+  const goalSec=getGoalSec();
+  const daysLeft=getDaysLeft(),totalDays=getTotalDays(),daysDone=Math.max(0,totalDays-daysLeft);
+
+  const todayEl=document.getElementById("stat-today");
+  todayEl.textContent=fmt(todayTotal);
+  todayEl.style.color=todayTotal>=goalSec?"#69DB7C":"#FFD43B";
+  document.getElementById("stat-week").textContent=fmt(weekTotal);
+  document.getElementById("stat-total").textContent=fmt(allTotal);
+
+  const avg=activeDays.length>0?fmt(Math.round(allTotal/activeDays.length)):"—";
+  const avgAll=daysDone>0?fmt(Math.round(allTotal/daysDone)):"—";
+
+  document.getElementById("stat-jour-grid").innerHTML=`
+    <div class="jour-cell"><div class="jour-cell-label">Jours actifs</div><div class="jour-cell-val" style="color:#4FC3F7">${activeDays.length} / ${totalDays}</div></div>
+    <div class="jour-cell"><div class="jour-cell-label">Jours ≥ objectif</div><div class="jour-cell-val" style="color:#69DB7C">${goodDays.length} / ${activeDays.length||1}</div></div>
+    <div class="jour-cell"><div class="jour-cell-label">Moy. jours actifs</div><div class="jour-cell-val" style="color:#FFD43B">${avg}</div></div>
+    <div class="jour-cell"><div class="jour-cell-label">Moy. globale</div><div class="jour-cell-val" style="color:#F783AC">${avgAll}</div></div>`;
+
+  const barsEl=document.getElementById("stat-mat-bars");
+  barsEl.innerHTML="";
+  cfg.matieres.forEach(m=>{
+    const s=allMap[m.id]||0;
+    const pct=allTotal>0?s/allTotal*100:0;
+    barsEl.innerHTML+=`
+      <div class="mat-bar-row">
+        <div class="mat-bar-header">
+          <div class="mat-bar-name"><div style="width:7px;height:7px;border-radius:50%;background:${m.color}"></div>${m.label}</div>
+          <div class="mat-bar-val" style="color:${m.color}">${fmt(s)}</div>
+        </div>
+        <div class="mat-bar-bg"><div class="mat-bar-fill" style="width:${pct}%;background:linear-gradient(to right,${m.color}77,${m.color})"></div></div>
+      </div>`;
+  });
+}
+
+// ── CALENDAR ───────────────────────────────────────────────────────────────────
+function refreshCalendar() {
+  if(!cfg)return;
+  const today=getToday();
+  const activeDays=getActiveDays();
+  const totalDays=getTotalDays();
+  const daysLeft=getDaysLeft();
+  const goalSec=getGoalSec();
+  const daysList=getDaysList();
+
+  document.getElementById("cal-header").textContent=
+    `JOURNÉES D'ÉTUDE · ${activeDays.length} / ${totalDays}`;
+  document.getElementById("cal-jx").textContent=`J-${daysLeft}`;
+  document.getElementById("cal-concours-date").textContent=
+    new Date(cfg.concours).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+
+  // Table
+  const body=document.getElementById("cal-table-body");
+  body.innerHTML="";
+  daysList.forEach(day=>{
+    const dd=studyData.days?.[day]||{};
+    const tot=Object.values(dd).reduce((a,b)=>a+b,0);
+    const ecart=tot-goalSec;
+    const isT=day===today, isSel=day===calSelDay;
+    const row=document.createElement("div");
+    row.className="cal-row"+(isSel?" selected":"")+(isT?" today-row":"");
+    row.id="cal-row-"+day;
+    row.onclick=()=>{ calSelDay=day; renderCalDay(); document.querySelectorAll(".cal-row").forEach(r=>{r.classList.remove("selected");}); row.classList.add("selected"); };
+    row.innerHTML=`
+      <span class="cal-date" style="color:${isT?"#4FC3F7":"#475569"}">${fmtDate(day)}</span>
+      <span class="cal-dur" style="color:${tot>0?"#e8eaf0":"#1e293b"}">${tot>0?fmt(tot):"—"}</span>
+      <span class="cal-obj">${cfg.goalHours}h</span>
+      <span class="cal-ecart" style="color:${ecart>=0&&tot>0?"#69DB7C":tot>0?"#f87171":"#1e293b"}">
+        ${tot>0?(ecart>=0?"+":"")+fmt(Math.abs(ecart)):"—"}
+      </span>`;
+    body.appendChild(row);
+  });
+
+  renderCalDay();
+}
+
+function renderCalDay() {
+  const today=getToday();
+  const sd=studyData.days?.[calSelDay]||{};
+  const entries=Object.entries(sd).filter(([,v])=>v>0);
+  const tot=entries.reduce((a,[,v])=>a+v,0);
+
+  document.getElementById("cal-detail-date").textContent=fmtDate(calSelDay).toUpperCase();
+  document.getElementById("cal-detail-day").textContent=
+    calSelDay===today?"Aujourd'hui":
+    new Date(calSelDay+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+
+  const sessEl=document.getElementById("cal-detail-sessions");
+  if(entries.length===0){
+    sessEl.innerHTML=`<div style="color:#334155;font-size:13px;text-align:center;padding:20px 0">Aucune session.</div>`;
+    return;
+  }
+  sessEl.innerHTML=entries.map(([id,secs])=>{
+    const m=cfg.matieres.find(x=>x.id===id);
+    if(!m)return"";
+    return `<div class="day-session-row">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:7px;height:7px;border-radius:50%;background:${m.color}"></div>
+        <span style="font-size:13px;color:#94a3b8">${m.label}</span>
+      </div>
+      <span style="font-family:var(--font-mono);font-size:12px;color:${m.color}">${fmt(secs)}</span>
+    </div>`;
+  }).join("")+
+  `<div style="margin-top:12px;display:flex;justify-content:space-between;font-size:13px">
+    <span style="color:var(--muted)">Total</span>
+    <span style="font-family:var(--font-mono);color:${(tot-getGoalSec())>=0?"#69DB7C":"#FFD43B"}">${fmt(tot)}</span>
+  </div>`;
+}
+
+// ── REFRESH ALL ────────────────────────────────────────────────────────────────
+function refreshAll() {
+  if(currentView==="home")refreshHome();
+  if(currentView==="stats")refreshStats();
+  if(currentView==="calendar")refreshCalendar();
+  if(currentView==="timer")renderTimer();
+}
+
+// ── BOOT ───────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  showScreen("login");
+  // Wait for Google to load
+  const interval = setInterval(()=>{
+    if(window.google?.accounts?.id){
+      clearInterval(interval);
+      initGoogle();
+    }
+  },100);
+};
+</script>
+</body>
+</html>
