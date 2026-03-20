@@ -204,12 +204,14 @@ input { font-family: var(--font); }
   min-height:100vh; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
   padding:80px 20px 40px; position:relative;
-  text-align:center;
+  text-align:center; width:100%;
 }
+#screen-timer > * { width:100%; display:flex; flex-direction:column; align-items:center; }
 .timer-badge {
   border-radius:100px; padding:8px 30px;
   font-weight:700; font-size:15px; letter-spacing:3px; margin-bottom:48px;
-  color:#0b0f1a; display:inline-block; width:auto; align-self:center;
+  color:#0b0f1a; display:inline-flex !important; width:auto !important; align-self:center;
+  flex-direction:row !important;
 }
 .timer-clock {
   font-family:var(--font-mono);
@@ -220,12 +222,13 @@ input { font-family: var(--font); }
 .timer-window {
   background:#ffffff0d; border:1px solid #ffffff12; border-radius:100px;
   padding:6px 20px; margin-bottom:10px; font-size:13px; color:#64748b;
-  font-family:var(--font-mono); display:flex; align-items:center; gap:12px;
+  font-family:var(--font-mono); display:flex !important; flex-direction:row !important; align-items:center; gap:12px;
+  width:auto !important;
 }
 .timer-bar { width:min(300px,75vw); height:3px; background:#ffffff0a; border-radius:2px; overflow:hidden; margin-bottom:40px; }
 .timer-bar-fill { height:100%; border-radius:2px; transition:width .5s; }
 .timer-phase { font-size:11px; color:#334155; letter-spacing:2px; margin-bottom:28px; }
-.timer-controls { display:flex; gap:14px; align-items:center; margin-bottom:32px; }
+.timer-controls { display:flex !important; flex-direction:row !important; gap:14px; align-items:center; margin-bottom:32px; width:auto !important; }
 .timer-icon-btn {
   width:50px; height:50px; border-radius:14px;
   background:#1e293b; color:#475569; font-size:18px;
@@ -238,7 +241,8 @@ input { font-family: var(--font); }
 .timer-save {
   border-radius:100px; padding:12px 30px; font-size:14px; font-weight:600;
   background:#16a34a; color:#fff; box-shadow:0 4px 16px #16a34a44;
-  display:flex; align-items:center; gap:8px; margin-bottom:24px;
+  display:flex !important; flex-direction:row !important; align-items:center; gap:8px; margin-bottom:24px;
+  width:auto !important;
 }
 .timer-footer {
   position:absolute; bottom:28px; font-size:12px; color:#334155; text-align:center;
@@ -1026,10 +1030,11 @@ function skipPhase() {
 }
 
 function savePartial() {
-  recordWork(timerMatId,timerElapsed);
+  const elapsed = timerElapsed; // capture before reset
+  recordWork(timerMatId, elapsed);
   timerElapsed=0; timerLeft=getWorkSec();
   const m=cfg.matieres.find(x=>x.id===timerMatId);
-  showNotif(`✅ ${fmt(timerElapsed||getWorkSec())} enregistrés en ${m?.label||timerMatId}`);
+  showNotif(`✅ ${fmt(elapsed)} enregistrés en ${m?.label||timerMatId}`);
   renderTimer();
 }
 
@@ -1051,9 +1056,9 @@ function renderTimer() {
     document.getElementById("timer-to").textContent=fmtTime(Date.now()+timerLeft*1000);
   }
 
-  // Save partial button - show if paused during work phase with at least 30s elapsed
+  // Save partial button - show if paused during work phase with at least 10s elapsed
   document.getElementById("btn-save-partial").style.display=
-    timerElapsed>30&&!timerRunning&&timerPhase==="work"?"flex":"none";
+    timerElapsed>=10&&!timerRunning&&timerPhase==="work"?"flex":"none";
 
   // Footer
   const today=getToday();
@@ -1206,3 +1211,4 @@ window.onload = () => {
 </script>
 </body>
 </html>
+
