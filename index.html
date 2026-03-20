@@ -501,7 +501,6 @@ input { font-family: var(--font); }
     <button class="timer-play" id="btn-play">▶</button>
     <button class="timer-icon-btn" id="btn-skip">⏭</button>
   </div>
-  <button class="timer-save" id="btn-save-partial" style="display:none">✓ Enregistrer la session</button>
   <div class="timer-footer" id="timer-footer"></div>
 </div>
 
@@ -1048,7 +1047,6 @@ function launchTimer(m) {
   document.getElementById("btn-play").onclick=toggleTimer;
   document.getElementById("btn-reset").onclick=resetTimer;
   document.getElementById("btn-skip").onclick=skipPhase;
-  document.getElementById("btn-save-partial").onclick=savePartial;
 
   showScreen("timer");
   renderTimer();
@@ -1057,12 +1055,17 @@ function launchTimer(m) {
 function toggleTimer() {
   if(timerRunning){
     stopTimer();
+    if(timerPhase==="work" && timerElapsed>=10){
+      recordWork(timerMatId, timerElapsed);
+      const m=cfg.matieres.find(x=>x.id===timerMatId);
+      showNotif(`✅ ${fmt(timerElapsed)} enregistrés en ${m?.label||timerMatId}`);
+    }
   } else {
     timerStart=Date.now()-timerElapsed*1000;
     timerTick=setInterval(tickTimer,500);
     timerRunning=true;
     document.getElementById("btn-play").textContent="⏸";
-    document.getElementById("timer-window").style.display="flex";
+    document.getElementById("timer-window").style.display="inline-flex";
   }
 }
 
@@ -1108,15 +1111,6 @@ function skipPhase() {
   renderTimer();
 }
 
-function savePartial() {
-  const elapsed = timerElapsed; // capture before reset
-  recordWork(timerMatId, elapsed);
-  timerElapsed=0; timerLeft=getWorkSec();
-  const m=cfg.matieres.find(x=>x.id===timerMatId);
-  showNotif(`✅ ${fmt(elapsed)} enregistrés en ${m?.label||timerMatId}`);
-  renderTimer();
-}
-
 function renderTimer() {
   document.getElementById("timer-clock").textContent=fmtTimer(timerLeft);
   const dur=timerPhase==="work"?getWorkSec():getBreakSec();
@@ -1134,10 +1128,6 @@ function renderTimer() {
     document.getElementById("timer-from").textContent=fmtTime(Date.now()-timerElapsed*1000);
     document.getElementById("timer-to").textContent=fmtTime(Date.now()+timerLeft*1000);
   }
-
-  // Save partial button - show if paused during work phase with at least 10s elapsed
-  document.getElementById("btn-save-partial").style.display=
-    timerElapsed>=10&&!timerRunning&&timerPhase==="work"?"inline-flex":"none";
 
   // Footer
   const today=getToday();
