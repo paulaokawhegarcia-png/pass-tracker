@@ -204,11 +204,12 @@ input { font-family: var(--font); }
   min-height:100vh; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
   padding:80px 20px 40px; position:relative;
+  text-align:center;
 }
 .timer-badge {
   border-radius:100px; padding:8px 30px;
   font-weight:700; font-size:15px; letter-spacing:3px; margin-bottom:48px;
-  color:#0b0f1a;
+  color:#0b0f1a; display:inline-block; width:auto; align-self:center;
 }
 .timer-clock {
   font-family:var(--font-mono);
@@ -1050,9 +1051,9 @@ function renderTimer() {
     document.getElementById("timer-to").textContent=fmtTime(Date.now()+timerLeft*1000);
   }
 
-  // Save partial button
+  // Save partial button - show if paused during work phase with at least 30s elapsed
   document.getElementById("btn-save-partial").style.display=
-    timerElapsed>60&&!timerRunning&&timerPhase==="work"?"flex":"none";
+    timerElapsed>30&&!timerRunning&&timerPhase==="work"?"flex":"none";
 
   // Footer
   const today=getToday();
